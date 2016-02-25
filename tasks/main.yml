@@ -6,4 +6,30 @@
     state=directory
     mode=0755
 
+- name: Install httpd
+  yum:
+    name=httpd
+    state=installed
+  when: ansible_os_family == 'RedHat'
 
+- name: Create virtual_hosts directory
+  file:
+    path='/etc/httpd/virtual_hosts'
+    state=directory
+    mode=0755
+
+#- name: Write virtual_hosts.conf
+#  copy:
+#    src='virtual_hosts.conf'
+#    dest='/etc/httpd/conf.d/virtual_hosts.conf'
+#    mode=0644
+#  notify: 
+#    - Restart httpd
+
+- name: Include virtual_hosts.conf
+  lineinfile: 
+    dest=/etc/httpd/conf/httpd.conf
+    regexp="^IncludeOptional virtual_hosts/*.conf"
+    line="IncludeOptional virtual_hosts/*.conf"
+  notify:
+    - Restart httpd
