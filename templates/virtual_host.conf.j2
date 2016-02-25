@@ -1,22 +1,31 @@
 # {{ ansible_managed }}
 
-<VirtualHost 10.166.1.24:8003>
-    ServerName confluence.ronnyforberger.de
-    DocumentRoot /usr/local/systems/HTTP/docroot
+<VirtualHost {{ item.ip }}:{{ item.port }}>
+    ServerName {{ item.hostname }}
+    DocumentRoot {{ item.document_root }}
 
     BrowserMatch ".*MSIE.*" nokeepalive ssl-unclean-shutdown downgrade-1.0 force-response-1.0
 
-    CustomLog /usr/local/systems/HTTP/log/httpd/confluence.ronnyforberger.de_access.log combined
-    ErrorLog /usr/local/systems/HTTP/log/httpd/confluence.ronnyforberger.de_error.log
+    CustomLog {{ log_dir }}/{{ item.hostname }}_access.log combined
+    ErrorLog {{ log_dir }}/{{ item.hostname }}_error.log
 
-    RewriteEngine on
-    ##RewriteLogLevel 0
+    RewriteEngine {{ item.rewrite_engine }}
+    RewriteLogLevel {{ item.rewrite_log_level }}
     #RewriteLog /usr/local/systems/HTTP/log/httpd/confluence.ronnyforberger.de_rewrite.log
     #RewriteCond %{SERVER_PORT} ^80$
-    RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
-    ErrorDocument 403 http://www.ronnyforberger.de
+    {% for i in item.rewrite_rule %}
+    RewriteRule {{ i.regex }} {{ i.dest }} {{ i.options }}
+    {% endfor %}
+    {% for i in item.error_document %}
+    ErrorDocument {{ i.error_code }} {{ i.dest }}
+    {% endfor %}
+    #RewriteRule ^.*$ https://%{SERVER_NAME}%{REQUEST_URI} [R,L]
+    #ErrorDocument 403 http://www.ronnyforberger.de
 
-    AllowEncodedSlashes On
+    #AllowEncodedSlashes On
+    {% for i in item.other_options %}
+    {{ i.option }} {{ i.value }}
+    {% endfor %}
 
     <Location />
         Order allow,deny

@@ -33,3 +33,12 @@
     line="IncludeOptional virtual_hosts/*.conf"
   notify:
     - Restart httpd
+
+- name: Write virtual_hosts
+  template:
+    src=virtual_host.conf.j2
+    dest="/etc/httpd/virtual_hosts/{{ item.hostname }}.conf"
+    owner=root
+    group=root
+    mode=0755
+  with_items: virtual_hosts
