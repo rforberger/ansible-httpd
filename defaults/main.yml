@@ -1,4 +1,15 @@
 ---
 
 log_dir: '/usr/local/systems/HTTP/log/httpd/'
+modjk_prerequisites:
+  - httpd-devel
+  - apr
+  - apr-devel
+  - apr-util
+  - apr-util-devel
+  - gcc 
+  - gcc-c++
+  - make 
+  - autoconf 
+  - libtool
 

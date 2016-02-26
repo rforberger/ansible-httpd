@@ -18,6 +18,104 @@
     state=directory
     mode=0755
 
+- name: Create the document root
+  file:
+    path={{ item.document_root }}
+    mode=0755
+    state=directory
+  with_items: virtual_hosts
+
+- name: Install mod_jk prerequisites
+  yum:
+    name={{ item }}
+    state=installed
+  with_items: modjk_prerequisites
+  when: ansible_os_family == 'RedHat'
+
+- name: Create mod_jk build directory
+  file:
+    path=/var/tmp/mod_jk
+    state=directory
+    mode=0755
+
+#- name: Install wget
+#  yum:
+#    name=wget
+#    state=installed
+#  when: ansible_os_family == 'RedHat'
+
+- name: Download mod_jk
+  get_url: 
+    url=http://www.eu.apache.org/dist/tomcat/tomcat-connectors/jk/tomcat-connectors-1.2.41-src.tar.gz 
+    dest=/var/tmp/mod_jk/tomcat-connectors-1.2.41-src.tar.gz
+    mode=0644
+  register: download_mod_jk
+
+- name: Extract mod_jk
+  unarchive:
+    src=/var/tmp/mod_jk/tomcat-connectors-1.2.41-src.tar.gz
+    dest=/var/tmp/mod_jk
+    copy=no
+  when: download_mod_jk | changed
+
+- name: Build mod_jk
+  shell: "{{ item }}"
+  with_items: 
+    - "./configure --with-apxs=/usr/bin/apxs"
+    - "make"
+    - "libtool --finish /usr/lib64/httpd/modules"
+    - "make install"
+  args:
+    chdir: /var/tmp/mod_jk/tomcat-connectors-1.2.41-src/native
+    creates: /usr/lib64/httpd/modules/mod_jk.so
+
+- name: Enable mod_jk
+  lineinfile:
+    dest=/etc/httpd/conf/httpd.conf
+    regexp="^LoadModule jk_module modules/mod_jk.so"
+    line="LoadModule jk_module modules/mod_jk.so"
+
+- name: Install mod_ssl
+  yum:
+    name=mod_ssl
+    state=installed
+  when: ansible_os_family == 'RedHat'
+
+- name: Install git
+  yum:
+    name=git
+    state=installed
+  when: ansible_os_family == 'RedHat'
+
+- name: Checkout ssl git repository
+  git:
+    repo=ssh://rf@git.ronnyforberger.de/home/rf/git-root/ssl
+    dest=/tmp/ansible-openvpn-ssl
+    accept_hostkey=True
+
+- name: Write openvpn SSL files
+  synchronize:
+    src=/tmp/ansible-openvpn-ssl/{{ item.ssl_cert }}
+    dest=/etc/httpd/ssl/
+    mode=0600
+  with_items: virtual_hosts
+  delegate_to: "{{ inventory_hostname }}"
+  when: item.ssl_cert is defined
+
+- name: Write openvpn SSL files
+  synchronize:
+    src=/tmp/ansible-openvpn-ssl/{{ item.ssl_key }}
+    dest=/etc/httpd/ssl/
+    mode=0600
+  with_items: virtual_hosts
+  delegate_to: "{{ inventory_hostname }}"
+  when: item.ssl_key is defined
+
+- name: Remove SSL git directory
+  file:
+    path=/tmp/ansible-openvpn-ssl
+    state=absent
+
 #- name: Write virtual_hosts.conf
 #  copy:
 #    src='virtual_hosts.conf'
@@ -37,7 +135,7 @@
 - name: Write virtual_hosts
   template:
     src=virtual_host.conf.j2
-    dest="/etc/httpd/virtual_hosts/{{ item.hostname }}.conf"
+    dest="/etc/httpd/virtual_hosts/{{ item.hostname }}{% if item.server_addition is defined %}_{{ item.server_addition }}{% endif %}.conf"
     owner=root
     group=root
     mode=0755
