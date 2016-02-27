@@ -38,16 +38,29 @@ ErrorDocument {{ i.error_code }} {{ i.dest }}
 {% endfor %}
 {% endif %}
 
-    <Location />
-        Order allow,deny
-        Allow from all
-    </Location>
-
     {% if item.proxy is defined %}
 <Proxy {{ item.proxy.value }}>
          Order {{ item.proxy.order }}
          Allow {{ item.proxy.allow }}
     </Proxy>
+{% endif %}
+
+    {% if item.locations is defined %}
+{% for l in item.locations %}<Location {{ l.location }}>
+    {% for o in l.options %}
+        {{ o.option }} {{ o.value }}
+{% endfor %}
+    </Location>
+{% endfor %}
+{% endif %}
+
+    {% if item.directories is defined %}
+{% for d in item.directories %}<Directory {{ d.directory }}>
+    {% for o in d.options %}
+        {{ o.option }} {{ o.value }}
+{% endfor %}
+    </Directory>
+{% endfor %}
 {% endif %}
 </VirtualHost>
 {% endfor %}
