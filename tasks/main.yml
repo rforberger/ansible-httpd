@@ -12,6 +12,15 @@
     state=installed
   when: ansible_os_family == 'RedHat'
 
+- name: Install mod_security
+  yum: 
+    name="{{ item }}"
+    state=installed
+  when: ansible_os_family == 'RedHat'
+  with_items:
+    - mod_security
+    - mod_security_crs
+
 - name: Create virtual_hosts directory
   file:
     path='/etc/httpd/virtual_hosts'
@@ -23,13 +32,13 @@
     path={{ item.document_root }}
     mode=0755
     state=directory
-  with_items: virtual_hosts
+  with_items: "{{ virtual_hosts }}"
 
 - name: Install mod_jk prerequisites
   yum:
     name={{ item }}
     state=installed
-  with_items: modjk_prerequisites
+  with_items: "{{ modjk_prerequisites }}"
   when: ansible_os_family == 'RedHat'
 
 - name: Create mod_jk build directory
@@ -98,7 +107,7 @@
     src=/tmp/ansible-openvpn-ssl/{{ item.ssl_cert }}
     dest=/etc/httpd/ssl/
     mode=0600
-  with_items: virtual_hosts
+  with_items: "{{ virtual_hosts }}"
   delegate_to: "{{ inventory_hostname }}"
   when: item.ssl_cert is defined
 
@@ -107,7 +116,7 @@
     src=/tmp/ansible-openvpn-ssl/{{ item.ssl_key }}
     dest=/etc/httpd/ssl/
     mode=0600
-  with_items: virtual_hosts
+  with_items: "{{ virtual_hosts }}"
   delegate_to: "{{ inventory_hostname }}"
   when: item.ssl_key is defined
 
@@ -123,6 +132,15 @@
 #    mode=0644
 #  notify: 
 #    - Restart httpd
+#
+- name: Configure mod_security
+  template:
+    src=rules-01.conf.j2
+    dest=/etc/httpd/modsecurity.d/activated_rules/rules-01.conf
+    mode=0600
+  when: ansible_os_family == 'RedHat'
+  notify:
+    - Restart httpd
 
 - name: Include virtual_hosts.conf
   lineinfile: 
@@ -139,4 +157,4 @@
     owner=root
     group=root
     mode=0755
-  with_items: virtual_hosts
+  with_items: "{{ virtual_hosts }}"
