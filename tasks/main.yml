@@ -55,14 +55,14 @@
 
 - name: Download mod_jk
   get_url: 
-    url=http://www.eu.apache.org/dist/tomcat/tomcat-connectors/jk/tomcat-connectors-1.2.41-src.tar.gz 
-    dest=/var/tmp/mod_jk/tomcat-connectors-1.2.41-src.tar.gz
+    url=http://www.eu.apache.org/dist/tomcat/tomcat-connectors/jk/tomcat-connectors-1.2.42-src.tar.gz 
+    dest=/var/tmp/mod_jk/tomcat-connectors-1.2.42-src.tar.gz
     mode=0644
   register: download_mod_jk
 
 - name: Extract mod_jk
   unarchive:
-    src=/var/tmp/mod_jk/tomcat-connectors-1.2.41-src.tar.gz
+    src=/var/tmp/mod_jk/tomcat-connectors-1.2.42-src.tar.gz
     dest=/var/tmp/mod_jk
     copy=no
   when: download_mod_jk | changed
@@ -75,7 +75,7 @@
     - "libtool --finish /usr/lib64/httpd/modules"
     - "make install"
   args:
-    chdir: /var/tmp/mod_jk/tomcat-connectors-1.2.41-src/native
+    chdir: /var/tmp/mod_jk/tomcat-connectors-1.2.42-src/native
     creates: /usr/lib64/httpd/modules/mod_jk.so
 
 - name: Enable mod_jk
@@ -106,7 +106,7 @@
   synchronize:
     src=/tmp/ansible-openvpn-ssl/{{ item.ssl_cert }}
     dest=/etc/httpd/ssl/
-    mode=0600
+    mode=pull
   with_items: "{{ virtual_hosts }}"
   delegate_to: "{{ inventory_hostname }}"
   when: item.ssl_cert is defined
@@ -115,7 +115,7 @@
   synchronize:
     src=/tmp/ansible-openvpn-ssl/{{ item.ssl_key }}
     dest=/etc/httpd/ssl/
-    mode=0600
+    mode=pull
   with_items: "{{ virtual_hosts }}"
   delegate_to: "{{ inventory_hostname }}"
   when: item.ssl_key is defined
